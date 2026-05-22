@@ -293,14 +293,14 @@ const SONGS = [
   { title: "Bohemian Rhapsody",           artist: "Queen",                 year: 1975 },
   { title: "Hotel California",            artist: "Eagles",                year: 1977 },
   { title: "Free Bird",                   artist: "Lynyrd Skynyrd",        year: 1973 },
-  { title: "Smoke on the Water",          artist: "Deep Purple",           year: 1972 },
+  { title: "Hush",                         artist: "Deep Purple",           year: 1968 },
   { title: "Born to Run",                 artist: "Bruce Springsteen",     year: 1975 },
   { title: "Kashmir",                     artist: "Led Zeppelin",          year: 1975 },
   { title: "Immigrant Song",              artist: "Led Zeppelin",          year: 1970 },
   { title: "Whole Lotta Love",            artist: "Led Zeppelin",          year: 1969 },
   { title: "Layla",                       artist: "Derek and the Dominos", year: 1970 },
   { title: "Gimme Shelter",               artist: "Rolling Stones",        year: 1969 },
-  { title: "Comfortably Numb",            artist: "Pink Floyd",            year: 1979 },
+  { title: "Another Brick in the Wall",   artist: "Pink Floyd",            year: 1979 },
   { title: "More Than a Feeling",         artist: "Boston",                year: 1976 },
   { title: "Carry On Wayward Son",        artist: "Kansas",                year: 1976 },
   { title: "Dream On",                    artist: "Aerosmith",             year: 1973 },
@@ -308,16 +308,16 @@ const SONGS = [
   { title: "Black Dog",                   artist: "Led Zeppelin",          year: 1971 },
   { title: "The Boys Are Back in Town",   artist: "Thin Lizzy",            year: 1976 },
   { title: "Highway to Hell",             artist: "AC/DC",                 year: 1979 },
-  { title: "Paranoid",                    artist: "Black Sabbath",         year: 1970 },
-  { title: "Light My Fire",               artist: "The Doors",             year: 1967 },
+  { title: "Iron Man",                      artist: "Black Sabbath",         year: 1970 },
+  { title: "Riders on the Storm",         artist: "The Doors",             year: 1971 },
   { title: "Purple Haze",                 artist: "Jimi Hendrix",          year: 1967 },
-  { title: "Fortunate Son",               artist: "Creedence Clearwater Revival", year: 1969 },
+  { title: "Bad Moon Rising",             artist: "Creedence Clearwater Revival", year: 1969 },
   { title: "Sweet Home Alabama",          artist: "Lynyrd Skynyrd",        year: 1974 },
   { title: "Sympathy for the Devil",      artist: "Rolling Stones",        year: 1968 },
-  { title: "White Room",                  artist: "Cream",                 year: 1968 },
+  { title: "Strange Brew",                artist: "Cream",                 year: 1967 },
   { title: "Magic Carpet Ride",           artist: "Steppenwolf",           year: 1968 },
   { title: "Break on Through",            artist: "The Doors",             year: 1967 },
-  { title: "Crossroads",                  artist: "Cream",                 year: 1968 },
+  { title: "Sunshine of Your Love",       artist: "Cream",                 year: 1967 },
   { title: "Long Time",                   artist: "Boston",                year: 1976 },
   { title: "Rock and Roll",               artist: "Led Zeppelin",          year: 1971 },
   { title: "Whole Lotta Rosie",           artist: "AC/DC",                 year: 1977 },
@@ -412,6 +412,28 @@ async function fetchPreviewUrl(song) {
   return null;
 }
 
+async function preloadAllSongs() {
+  // Fetch preview URLs for all 5 songs in the background
+  for (let i = 0; i < todaysSongs.length; i++) {
+    const song = todaysSongs[i];
+    const key = `${song.title}::${song.artist}`;
+    if (previewUrls[key] === undefined) {
+      previewUrls[key] = await fetchPreviewUrl(song);
+    }
+    // Set the audio src for round 0 as soon as it's ready
+    if (i === 0) {
+      const audio = document.getElementById('audio-player');
+      if (previewUrls[key]) {
+        audio.src = previewUrls[key];
+        audio.load();
+        setStatus('Click the record to play');
+      } else {
+        setStatus('No preview available — skip this round');
+      }
+    }
+  }
+}
+
 async function preloadCurrentSong() {
   const song = todaysSongs[currentRound];
   const key = `${song.title}::${song.artist}`;
@@ -430,17 +452,11 @@ async function preloadCurrentSong() {
 }
 
 // ── PLAYBACK ──────────────────────────────────────────────────────
-async function playClip() {
+function playClip() {
   if (isPlaying) return;
   const audio = document.getElementById('audio-player');
 
-  // If no src yet, try loading the preview first
-  if (!audio.src || audio.src === window.location.href) {
-    setStatus('Loading preview...');
-    await preloadCurrentSong();
-  }
-
-  // Still no src after loading attempt
+  // No preview loaded yet
   if (!audio.src || audio.src === window.location.href) {
     setStatus('No preview available — skip this round');
     return;
@@ -450,18 +466,22 @@ async function playClip() {
   isPlaying = true;
   hasPlayed = true;
 
+  // iOS Safari requires play() to be called synchronously from a tap
   audio.currentTime = 0;
-  audio.play().then(() => {
-    setStatus('▶ Playing...');
-    document.getElementById('vinyl-disc').classList.add('spinning');
-    document.getElementById('play-icon').style.display = 'none';
-    startViz();
-    stopTimer = setTimeout(stopPlayback, secs * 1000);
-  }).catch(e => {
-    isPlaying = false;
-    setStatus('Tap the record to play');
-    console.error('Audio play error', e);
-  });
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      setStatus('▶ Playing...');
+      document.getElementById('vinyl-disc').classList.add('spinning');
+      document.getElementById('play-icon').style.display = 'none';
+      startViz();
+      stopTimer = setTimeout(stopPlayback, secs * 1000);
+    }).catch(e => {
+      isPlaying = false;
+      setStatus('Tap the record to play');
+      console.error('Audio play error', e);
+    });
+  }
 }
 
 function stopPlayback() {
@@ -602,6 +622,7 @@ function startGame() {
   document.getElementById('screen-name').classList.remove('active');
   document.getElementById('screen-game').classList.add('active');
   document.getElementById('nav-tabs').style.display = 'flex';
+  preloadAllSongs();
   startRound(0);
 }
 
