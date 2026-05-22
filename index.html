@@ -430,11 +430,19 @@ async function preloadCurrentSong() {
 }
 
 // ── PLAYBACK ──────────────────────────────────────────────────────
-function playClip() {
+async function playClip() {
   if (isPlaying) return;
   const audio = document.getElementById('audio-player');
+
+  // If no src yet, try loading the preview first
   if (!audio.src || audio.src === window.location.href) {
-    setStatus('Still loading — try again in a moment');
+    setStatus('Loading preview...');
+    await preloadCurrentSong();
+  }
+
+  // Still no src after loading attempt
+  if (!audio.src || audio.src === window.location.href) {
+    setStatus('No preview available — skip this round');
     return;
   }
 
