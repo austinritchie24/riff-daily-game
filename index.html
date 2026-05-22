@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="RIFF — The daily classic rock listening challenge.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RIFF">
+<title>RIFF — Daily Classic Rock Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream: #f5f0e8; --dark: #1a1208; --amber: #c8841a; --rust: #b03a1e;
+    --vinyl: #1e1812; --gold: #d4a017; --muted: #7a6a50; --groove: #2e2318;
+  }
+  body {
+    background-color: var(--vinyl);
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px);
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+  #app { width: 100%; max-width: 680px; padding: 0 0 80px 0; }
+  .header { text-align: center; padding: 32px 20px 20px; border-bottom: 1px solid rgba(200,132,26,0.3); }
+  .header::before { content: '◈ ◈ ◈'; display: block; font-size: 10px; color: var(--amber); letter-spacing: 8px; margin-bottom: 8px; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 72px; line-height: 1; letter-spacing: 12px; color: var(--cream); text-shadow: 4px 4px 0 var(--amber), 8px 8px 0 rgba(200,132,26,0.3); }
+  .tagline { font-size: 11px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+  .puzzle-num { font-size: 11px; color: var(--amber); letter-spacing: 2px; margin-top: 8px; }
+  .nav-tabs { display: flex; justify-content: center; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .nav-tab { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 0; border-bottom: 1px solid transparent; transition: all 0.2s; }
+  .nav-tab:hover { color: var(--cream); }
+  .nav-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .screen { display: none; padding: 24px 20px; }
+  .screen.active { display: block; }
+  .name-screen { text-align: center; max-width: 420px; margin: 40px auto; }
+  .name-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 6px; color: var(--cream); margin-bottom: 8px; }
+  .name-screen p { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; letter-spacing: 1px; }
+  .rules-box { background: var(--groove); border: 1px solid rgba(200,132,26,0.25); padding: 20px; margin-bottom: 24px; text-align: left; }
+  .rules-box h3 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 4px; color: var(--amber); margin-bottom: 12px; }
+  .rules-box ol { padding-left: 20px; }
+  .rules-box li { font-size: 12px; color: var(--muted); line-height: 2.1; letter-spacing: 0.5px; }
+  .rules-box li span { color: var(--cream); }
+  .vinyl-input { width: 100%; background: var(--groove); border: 1px solid var(--amber); color: var(--cream); font-family: 'IBM Plex Mono', monospace; font-size: 18px; padding: 14px 20px; letter-spacing: 3px; text-transform: uppercase; text-align: center; outline: none; margin-bottom: 16px; }
+  .vinyl-input::placeholder { color: var(--muted); font-size: 14px; letter-spacing: 2px; text-transform: none; }
+  .vinyl-input:focus { border-color: var(--gold); }
+  .btn-primary { width: 100%; background: var(--amber); color: var(--dark); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 6px; padding: 14px; cursor: pointer; transition: all 0.15s; }
+  .btn-primary:hover { background: var(--gold); }
+  .progress-bar-wrap { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .progress-seg { flex: 1; height: 3px; background: var(--groove); transition: background 0.3s; }
+  .progress-seg.done { background: var(--amber); }
+  .progress-seg.current { background: rgba(200,132,26,0.5); }
+  .progress-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
+  .score-display { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid rgba(200,132,26,0.15); padding-bottom: 12px; }
+  .score-display .label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
+  .score-display .value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--amber); letter-spacing: 4px; }
+  .player-section { text-align: center; margin-bottom: 28px; }
+  .vinyl-record { width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle at center, #3a3028 0%, #2e2318 20%, #1e1812 35%, #2a2018 40%, #1e1812 55%, #2a2018 70%, #1e1812 85%, #241c12 100%); border: 2px solid rgba(200,132,26,0.3); margin: 0 auto 16px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5); transition: box-shadow 0.2s; user-select: none; }
+  .vinyl-record::before { content: ''; position: absolute; width: 32px; height: 32px; border-radius: 50%; background: var(--amber); opacity: 0.9; }
+  .vinyl-record.spinning { animation: spin 2s linear infinite; }
+  .vinyl-record:hover { box-shadow: 0 0 40px rgba(200,132,26,0.3), inset 0 0 20px rgba(0,0,0,0.5); }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .play-icon { position: absolute; font-size: 30px; color: var(--dark); font-weight: bold; z-index: 2; line-height: 1; pointer-events: none; }
+  .sp-status { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; min-height: 16px; }
+  .attempt-info { font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .clip-duration { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--cream); letter-spacing: 4px; line-height: 1; }
+  .clip-duration span { color: var(--amber); }
+  .pts-available { display: inline-block; background: var(--groove); border: 1px solid rgba(200,132,26,0.3); font-size: 11px; letter-spacing: 3px; color: var(--amber); padding: 4px 12px; margin-top: 8px; }
+  .audio-viz { display: flex; align-items: center; justify-content: center; gap: 3px; height: 32px; margin: 10px auto; }
+  .audio-bar { width: 3px; background: var(--amber); border-radius: 2px; opacity: 0.7; transition: height 0.1s; }
+  .guess-section { margin-bottom: 20px; }
+  .guess-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .guess-input-wrap { display: flex; gap: 8px; }
+  .guess-input { flex: 1; background: var(--groove); border: 1px solid rgba(200,132,26,0.4); color: var(--cream); font-family: 'IBM Plex Mono', monospace; font-size: 14px; padding: 12px 16px; letter-spacing: 1px; outline: none; min-width: 0; }
+  .guess-input:focus { border-color: var(--amber); }
+  .guess-input::placeholder { color: rgba(122,106,80,0.6); }
+  .btn-guess { background: none; border: 1px solid var(--amber); color: var(--amber); font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 4px; padding: 12px 20px; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .btn-guess:hover { background: var(--amber); color: var(--dark); }
+  .btn-skip { background: none; border: 1px solid rgba(122,106,80,0.4); color: var(--muted); font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; padding: 10px 16px; cursor: pointer; transition: all 0.15s; width: 100%; margin-top: 8px; }
+  .btn-skip:hover { border-color: var(--rust); color: var(--rust); }
+  .guess-history { margin-bottom: 20px; }
+  .guess-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--groove); border-left: 2px solid var(--rust); margin-bottom: 4px; font-size: 12px; }
+  .guess-item .gi-label { color: var(--muted); font-size: 10px; letter-spacing: 2px; min-width: 50px; }
+  .guess-item .gi-text { color: var(--cream); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .guess-item .gi-x { color: var(--rust); font-size: 14px; flex-shrink: 0; }
+  .feedback-box { padding: 12px 16px; margin-bottom: 16px; font-size: 12px; letter-spacing: 1px; line-height: 1.5; }
+  .feedback-box.correct { background: rgba(99,153,34,0.15); border: 1px solid rgba(99,153,34,0.5); color: #97c459; }
+  .feedback-box.wrong { background: rgba(176,58,30,0.15); border: 1px solid rgba(176,58,30,0.4); color: #e07060; }
+  .feedback-box.skip { background: rgba(122,106,80,0.15); border: 1px solid rgba(122,106,80,0.3); color: var(--muted); }
+  .feedback-box.info { background: rgba(200,132,26,0.1); border: 1px solid rgba(200,132,26,0.3); color: var(--amber); }
+  .round-result { background: var(--groove); border: 1px solid rgba(200,132,26,0.3); padding: 24px; margin-bottom: 16px; text-align: center; }
+  .song-name { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; color: var(--cream); line-height: 1.1; margin-bottom: 4px; }
+  .artist-name { font-size: 12px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; margin-bottom: 16px; }
+  .pts-earned { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--gold); letter-spacing: 4px; }
+  .pts-label { font-size: 10px; letter-spacing: 4px; color: var(--muted); }
+  .song-info-box { background: var(--vinyl); border: 1px solid rgba(200,132,26,0.15); padding: 16px; margin-top: 16px; text-align: left; }
+  .song-info-box p { font-size: 12px; color: var(--muted); line-height: 1.9; letter-spacing: 0.5px; }
+  .info-label { font-size: 10px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; margin-bottom: 6px; }
+  .info-loading { text-align: center; color: var(--muted); font-size: 11px; letter-spacing: 3px; padding: 12px; }
+  .btn-next { width: 100%; background: none; border: 1px solid var(--amber); color: var(--amber); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 6px; padding: 14px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+  .btn-next:hover { background: var(--amber); color: var(--dark); }
+  .final-screen { text-align: center; padding: 40px 20px; }
+  .final-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 8px; color: var(--muted); margin-bottom: 8px; }
+  .final-total { font-family: 'Bebas Neue', sans-serif; font-size: 96px; color: var(--amber); letter-spacing: 8px; line-height: 1; }
+  .final-max { font-size: 12px; color: var(--muted); letter-spacing: 4px; margin-bottom: 32px; }
+  .round-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 32px; }
+  .rs-item { background: var(--groove); border: 1px solid rgba(200,132,26,0.2); padding: 10px 6px; text-align: center; }
+  .rs-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .rs-pts { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--amber); letter-spacing: 2px; }
+  .rs-song { font-size: 9px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .share-btn { background: var(--amber); color: var(--dark); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 5px; padding: 14px 32px; cursor: pointer; transition: all 0.15s; }
+  .share-btn:hover { background: var(--gold); }
+  .share-toast { font-size: 11px; color: #97c459; letter-spacing: 2px; margin-top: 8px; min-height: 16px; }
+  .countdown-wrap { margin-top: 32px; }
+  .countdown-label { font-size: 10px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .countdown-time { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--cream); letter-spacing: 6px; }
+  .lb-date { font-size: 11px; color: var(--muted); letter-spacing: 2px; margin-bottom: 16px; }
+  .lb-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .lb-table th { font-size: 9px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(200,132,26,0.3); }
+  .lb-table td { font-size: 13px; color: var(--cream); padding: 10px 12px; border-bottom: 1px solid rgba(200,132,26,0.08); }
+  .lb-table tr.me td { color: var(--amber); }
+  .lb-table .rank { color: var(--muted); font-size: 11px; }
+  .lb-table .pts-cell { text-align: right; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; color: var(--amber); }
+  .lb-loading { color: var(--muted); font-size: 12px; letter-spacing: 2px; padding: 20px 0; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .stat-card { background: var(--groove); border: 1px solid rgba(200,132,26,0.2); padding: 16px; text-align: center; }
+  .stat-card .sc-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--amber); letter-spacing: 4px; }
+  .stat-card .sc-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 5px; color: var(--amber); margin-bottom: 12px; border-bottom: 1px solid rgba(200,132,26,0.2); padding-bottom: 8px; }
+  .divider { text-align: center; color: var(--amber); font-size: 10px; letter-spacing: 8px; margin: 20px 0; opacity: 0.5; }
+  .config-banner { background: rgba(176,58,30,0.2); border: 1px solid rgba(176,58,30,0.5); color: #e07060; font-size: 11px; letter-spacing: 1px; line-height: 1.8; padding: 12px 16px; margin-bottom: 16px; }
+  .config-banner code { background: rgba(0,0,0,0.3); padding: 2px 6px; font-family: monospace; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="logo">RIFF</div>
+    <div class="tagline">A Daily Classic Rock Challenge</div>
+    <div class="puzzle-num" id="puzzle-num">Puzzle #1</div>
+    <div class="nav-tabs" id="nav-tabs" style="display:none">
+      <button class="nav-tab active" onclick="showTab('game')">Today's Puzzle</button>
+      <button class="nav-tab" onclick="showTab('leaderboard')">Leaderboard</button>
+      <button class="nav-tab" onclick="showTab('stats')">My Stats</button>
+      <button class="nav-tab" onclick="showTab('howto')">How to Play</button>
+    </div>
+  </div>
+
+  <div id="screen-name" class="screen active">
+    <div class="name-screen">
+      <div class="divider">— ♩ —</div>
+      <h2>WELCOME TO RIFF</h2>
+      <p>The daily classic rock listening challenge.<br>Can you name that riff?</p>
+      <div class="rules-box">
+        <h3>How to Play</h3>
+        <ol>
+          <li><span>Click the vinyl record</span> to play a real song clip.</li>
+          <li>The first clip is just <span>1 second</span> — type your best guess.</li>
+          <li>Wrong? Skip for a <span>longer clip</span>, but lose points.</li>
+          <li>Up to <span>5 attempts</span>: 100 / 80 / 60 / 40 / 20 pts each.</li>
+          <li><span>Five rounds</span>. 500 points max. New puzzle every day.</li>
+        </ol>
+      </div>
+      <input class="vinyl-input" id="player-name-input" type="text" maxlength="20" placeholder="Enter your name" autocomplete="off" />
+      <button class="btn-primary" onclick="startGame()">DROP THE NEEDLE</button>
+    </div>
+  </div>
+
+  <div id="screen-game" class="screen">
+    <div class="progress-bar-wrap">
+      <div class="progress-seg" id="prog-0"></div>
+      <div class="progress-seg" id="prog-1"></div>
+      <div class="progress-seg" id="prog-2"></div>
+      <div class="progress-seg" id="prog-3"></div>
+      <div class="progress-seg" id="prog-4"></div>
+      <div class="progress-label" id="prog-label">ROUND 1 OF 5</div>
+    </div>
+    <div class="score-display">
+      <div><div class="label">Total Score</div><div class="value" id="score-display">0</div></div>
+      <div style="text-align:right"><div class="label">Round</div><div class="value" id="round-display">1 / 5</div></div>
+    </div>
+    <div id="game-play-section">
+      <div class="player-section">
+        <div class="vinyl-record" id="vinyl-disc" onclick="playClip()">
+          <div class="play-icon" id="play-icon">▶</div>
+        </div>
+        <div class="audio-viz" id="audio-viz">
+          <div class="audio-bar" style="height:8px"></div>
+          <div class="audio-bar" style="height:18px"></div>
+          <div class="audio-bar" style="height:12px"></div>
+          <div class="audio-bar" style="height:22px"></div>
+          <div class="audio-bar" style="height:10px"></div>
+          <div class="audio-bar" style="height:16px"></div>
+          <div class="audio-bar" style="height:20px"></div>
+          <div class="audio-bar" style="height:14px"></div>
+          <div class="audio-bar" style="height:8px"></div>
+        </div>
+        <div class="sp-status" id="sp-status">Loading preview...</div>
+        <div class="attempt-info" id="attempt-info">ATTEMPT 1 OF 5</div>
+        <div class="clip-duration">CLIP: <span id="clip-secs">1</span>s</div>
+        <div class="pts-available" id="pts-avail">100 PTS AVAILABLE</div>
+      </div>
+      <div class="guess-history" id="guess-history"></div>
+      <div id="feedback-area"></div>
+      <div class="guess-section" id="guess-section">
+        <div class="guess-label">Name That Song</div>
+        <div class="guess-input-wrap">
+          <input class="guess-input" id="guess-input" type="text" placeholder='e.g. "Stairway to Heaven"' autocomplete="off" maxlength="100" />
+          <button class="btn-guess" onclick="submitGuess()">GUESS</button>
+        </div>
+        <button class="btn-skip" onclick="skipAttempt()">Skip — play a longer clip (−pts)</button>
+      </div>
+    </div>
+    <div id="round-result-section" style="display:none">
+      <div class="round-result">
+        <div style="font-size:10px;letter-spacing:4px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Round <span id="rr-round"></span> of 5</div>
+        <div class="song-name" id="rr-song"></div>
+        <div class="artist-name" id="rr-artist"></div>
+        <div class="pts-earned" id="rr-pts"></div>
+        <div class="pts-label">POINTS EARNED</div>
+        <div class="song-info-box">
+          <div class="info-label">About This Song</div>
+          <div id="rr-info"><div class="info-loading">Loading from the archives...</div></div>
+        </div>
+      </div>
+      <button class="btn-next" id="btn-next-round" onclick="nextRound()">NEXT TRACK →</button>
+    </div>
+  </div>
+
+  <div id="screen-final" class="screen final-screen">
+    <h2>Final Score</h2>
+    <div class="final-total" id="final-total">0</div>
+    <div class="final-max">OUT OF 500</div>
+    <div class="round-summary" id="round-summary"></div>
+    <button class="share-btn" onclick="shareResult()">SHARE RESULT</button>
+    <div class="share-toast" id="share-toast"></div>
+    <div class="countdown-wrap">
+      <div class="countdown-label">Next Puzzle In</div>
+      <div class="countdown-time" id="countdown">--:--:--</div>
+    </div>
+  </div>
+
+  <div id="screen-leaderboard" class="screen">
+    <div class="section-head">Today's Leaderboard</div>
+    <div class="lb-date" id="lb-date"></div>
+    <div id="lb-content"><div class="lb-loading">Loading...</div></div>
+  </div>
+
+  <div id="screen-stats" class="screen">
+    <div class="section-head">My Stats</div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div id="history-list" style="margin-top:24px"></div>
+  </div>
+
+  <div id="screen-howto" class="screen">
+    <div class="section-head">How to Play</div>
+    <div class="rules-box">
+      <ol style="line-height:2.2;font-size:13px;padding-left:20px;">
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Each day brings 5 classic rock songs</span> from the golden era (1960–1980).</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Click the vinyl record</span> to play a real audio clip. Starts at just 1 second.</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Type your guess</span> — song title only. Partial title works: "Stairway" counts.</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Skip</span> to hear a longer clip, but you lose points each time.</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Scoring:</span> Attempt 1=100, 2=80, 3=60, 4=40, 5=20, Miss=0 pts.</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">After each round,</span> learn the story behind the song.</li>
+        <li style="color:var(--muted)"><span style="color:var(--cream)">Max 500 points.</span> Everyone gets the same 5 songs. New puzzle at midnight.</li>
+      </ol>
+    </div>
+    <div class="divider">— THE CLASSICS —</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;line-height:2.4;text-align:center;">
+      Led Zeppelin · Rolling Stones · The Who · Jimi Hendrix<br>
+      Pink Floyd · Cream · AC/DC · Deep Purple · Aerosmith<br>
+      Lynyrd Skynyrd · Black Sabbath · The Doors · Fleetwood Mac<br>
+      Boston · Kansas · CCR · Blue Öyster Cult · Thin Lizzy
+    </div>
+  </div>
+</div>
+
+<audio id="audio-player" preload="auto"></audio>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────
+const SPOTIFY_CLIENT_ID     = '8b7dad9d0d334b6ca4f081fab3d98d9e';
+const SPOTIFY_CLIENT_SECRET = '276548f4d41d4ca8acae052548e3fee8';
+const SUPABASE_URL          = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY     = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_TABLE        = 'leaderboard';
+
+// ── SONG LIBRARY ─────────────────────────────────────────────────
+const SONGS = [
+  { title: "Stairway to Heaven",          artist: "Led Zeppelin",          year: 1971 },
+  { title: "Bohemian Rhapsody",           artist: "Queen",                 year: 1975 },
+  { title: "Hotel California",            artist: "Eagles",                year: 1977 },
+  { title: "Free Bird",                   artist: "Lynyrd Skynyrd",        year: 1973 },
+  { title: "Smoke on the Water",          artist: "Deep Purple",           year: 1972 },
+  { title: "Born to Run",                 artist: "Bruce Springsteen",     year: 1975 },
+  { title: "Kashmir",                     artist: "Led Zeppelin",          year: 1975 },
+  { title: "Immigrant Song",              artist: "Led Zeppelin",          year: 1970 },
+  { title: "Whole Lotta Love",            artist: "Led Zeppelin",          year: 1969 },
+  { title: "Layla",                       artist: "Derek and the Dominos", year: 1970 },
+  { title: "Gimme Shelter",               artist: "Rolling Stones",        year: 1969 },
+  { title: "Comfortably Numb",            artist: "Pink Floyd",            year: 1979 },
+  { title: "More Than a Feeling",         artist: "Boston",                year: 1976 },
+  { title: "Carry On Wayward Son",        artist: "Kansas",                year: 1976 },
+  { title: "Dream On",                    artist: "Aerosmith",             year: 1973 },
+  { title: "Don't Fear the Reaper",       artist: "Blue Oyster Cult",      year: 1976 },
+  { title: "Black Dog",                   artist: "Led Zeppelin",          year: 1971 },
+  { title: "The Boys Are Back in Town",   artist: "Thin Lizzy",            year: 1976 },
+  { title: "Highway to Hell",             artist: "AC/DC",                 year: 1979 },
+  { title: "Paranoid",                    artist: "Black Sabbath",         year: 1970 },
+  { title: "Light My Fire",               artist: "The Doors",             year: 1967 },
+  { title: "Purple Haze",                 artist: "Jimi Hendrix",          year: 1967 },
+  { title: "Fortunate Son",               artist: "Creedence Clearwater Revival", year: 1969 },
+  { title: "Sweet Home Alabama",          artist: "Lynyrd Skynyrd",        year: 1974 },
+  { title: "Sympathy for the Devil",      artist: "Rolling Stones",        year: 1968 },
+  { title: "White Room",                  artist: "Cream",                 year: 1968 },
+  { title: "Magic Carpet Ride",           artist: "Steppenwolf",           year: 1968 },
+  { title: "Break on Through",            artist: "The Doors",             year: 1967 },
+  { title: "Crossroads",                  artist: "Cream",                 year: 1968 },
+  { title: "Long Time",                   artist: "Boston",                year: 1976 },
+  { title: "Rock and Roll",               artist: "Led Zeppelin",          year: 1971 },
+  { title: "Whole Lotta Rosie",           artist: "AC/DC",                 year: 1977 },
+  { title: "Walk This Way",               artist: "Aerosmith",             year: 1975 },
+  { title: "Roxanne",                     artist: "The Police",            year: 1978 },
+  { title: "Won't Get Fooled Again",      artist: "The Who",               year: 1971 },
+  { title: "All Along the Watchtower",    artist: "Jimi Hendrix",          year: 1968 },
+  { title: "Barracuda",                   artist: "Heart",                 year: 1977 },
+  { title: "Go Your Own Way",             artist: "Fleetwood Mac",         year: 1977 },
+  { title: "Sultans of Swing",            artist: "Dire Straits",          year: 1978 },
+  { title: "Back in Black",               artist: "AC/DC",                 year: 1980 },
+  { title: "Refugee",                     artist: "Tom Petty",             year: 1979 },
+  { title: "Mississippi Queen",           artist: "Mountain",              year: 1970 },
+  { title: "Radar Love",                  artist: "Golden Earring",        year: 1973 },
+  { title: "Sharp Dressed Man",           artist: "ZZ Top",                year: 1983 },
+  { title: "Peace of Mind",               artist: "Boston",                year: 1976 },
+];
+
+const PTS = [100, 80, 60, 40, 20];
+
+// ── STATE ─────────────────────────────────────────────────────────
+let playerName = '';
+let todaysSongs = [];
+let currentRound = 0;
+let currentAttempt = 0;
+let totalScore = 0;
+let roundScores = [];
+let isPlaying = false;
+let hasPlayed = false;
+let vizInterval = null;
+let stopTimer = null;
+let spotifyToken = null;
+let previewUrls = {};  // cache: songIndex -> previewUrl
+
+// ── SPOTIFY AUTH (Client Credentials) ────────────────────────────
+async function getSpotifyToken() {
+  if (spotifyToken) return spotifyToken;
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
+      },
+      body: 'grant_type=client_credentials'
+    });
+    const data = await res.json();
+    spotifyToken = data.access_token;
+    // Refresh token before expiry
+    setTimeout(() => { spotifyToken = null; }, (data.expires_in - 60) * 1000);
+    return spotifyToken;
+  } catch(e) {
+    console.error('Spotify token error', e);
+    return null;
+  }
+}
+
+async function fetchPreviewUrl(song) {
+  const token = await getSpotifyToken();
+  if (!token) return null;
+  try {
+    const q = encodeURIComponent(`track:${song.title} artist:${song.artist}`);
+    const res = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=5`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const tracks = data.tracks?.items || [];
+    // Find best match — prefer exact title match with a preview_url
+    for (const track of tracks) {
+      if (track.preview_url && track.name.toLowerCase() === song.title.toLowerCase()) {
+        return track.preview_url;
+      }
+    }
+    // Fallback: first result with any preview
+    for (const track of tracks) {
+      if (track.preview_url) return track.preview_url;
+    }
+    return null;
+  } catch(e) {
+    console.error('Spotify search error', e);
+    return null;
+  }
+}
+
+async function preloadCurrentSong() {
+  const song = todaysSongs[currentRound];
+  const key = `${song.title}::${song.artist}`;
+  setStatus('Loading preview...');
+  if (previewUrls[key] === undefined) {
+    previewUrls[key] = await fetchPreviewUrl(song);
+  }
+  if (previewUrls[key]) {
+    const audio = document.getElementById('audio-player');
+    audio.src = previewUrls[key];
+    audio.load();
+    setStatus('Click the record to play');
+  } else {
+    setStatus('No preview available — skip this round');
+  }
+}
+
+// ── PLAYBACK ──────────────────────────────────────────────────────
+function playClip() {
+  if (isPlaying) return;
+  const audio = document.getElementById('audio-player');
+  if (!audio.src || audio.src === window.location.href) {
+    setStatus('Still loading — try again in a moment');
+    return;
+  }
+
+  const secs = currentAttempt + 1;
+  isPlaying = true;
+  hasPlayed = true;
+
+  audio.currentTime = 0;
+  audio.play().then(() => {
+    setStatus('▶ Playing...');
+    document.getElementById('vinyl-disc').classList.add('spinning');
+    document.getElementById('play-icon').style.display = 'none';
+    startViz();
+    stopTimer = setTimeout(stopPlayback, secs * 1000);
+  }).catch(e => {
+    isPlaying = false;
+    setStatus('Tap the record to play');
+    console.error('Audio play error', e);
+  });
+}
+
+function stopPlayback() {
+  isPlaying = false;
+  if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+  const audio = document.getElementById('audio-player');
+  audio.pause();
+  audio.currentTime = 0;
+  document.getElementById('vinyl-disc').classList.remove('spinning');
+  document.getElementById('play-icon').style.display = 'block';
+  stopViz();
+  setStatus('Click to replay · or type your guess below');
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('sp-status');
+  if (el) el.textContent = msg;
+}
+
+function startViz() {
+  const bars = document.querySelectorAll('.audio-bar');
+  vizInterval = setInterval(() => bars.forEach(b => { b.style.height = (6 + Math.random() * 20) + 'px'; }), 110);
+}
+function stopViz() {
+  clearInterval(vizInterval);
+  [8,18,12,22,10,16,20,14,8].forEach((h, i) => {
+    const b = document.querySelectorAll('.audio-bar')[i];
+    if (b) b.style.height = h + 'px';
+  });
+}
+
+// ── DAILY SEED ────────────────────────────────────────────────────
+function getDailyIndex() {
+  return Math.floor((Date.now() - new Date(2024, 0, 1).getTime()) / 86400000);
+}
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+function getPuzzleNum() { return getDailyIndex() + 1; }
+function getTodaySongs() {
+  const idx = getDailyIndex();
+  const arr = [...SONGS];
+  let seed = idx * 1337 + 42;
+  for (let i = arr.length - 1; i > 0; i--) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const j = Math.floor((seed / 233280) * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, 5);
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────
+function loadStats() {
+  try { const s = localStorage.getItem('riff_stats'); return s ? JSON.parse(s) : { games:0, totalScore:0, best:0, streak:0, lastDate:'', history:[] }; } catch(e) { return { games:0, totalScore:0, best:0, streak:0, lastDate:'', history:[] }; }
+}
+function saveStats(score) {
+  const stats = loadStats(), today = new Date().toDateString();
+  if (stats.lastDate === today) return;
+  const yesterday = new Date(Date.now()-86400000).toDateString();
+  stats.streak = stats.lastDate === yesterday ? stats.streak+1 : 1;
+  stats.lastDate = today; stats.games++; stats.totalScore += score;
+  stats.best = Math.max(stats.best, score);
+  stats.history = [{ date:today, score, puzzle:getPuzzleNum() }, ...stats.history].slice(0,30);
+  try { localStorage.setItem('riff_stats', JSON.stringify(stats)); } catch(e) {}
+}
+function loadTodayState() {
+  try { const s = localStorage.getItem('riff_day_'+getTodayKey()); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+}
+function saveTodayState(score) {
+  try { localStorage.setItem('riff_day_'+getTodayKey(), JSON.stringify({ complete:true, score })); } catch(e) {}
+}
+
+// ── SUPABASE ──────────────────────────────────────────────────────
+function supabaseConfigured() {
+  return SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+}
+async function sbFetch(path, opts={}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': opts.prefer||'return=minimal', ...opts.headers },
+    method: opts.method||'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}`);
+  try { return await res.json(); } catch(e) { return null; }
+}
+async function submitScore(name, score) {
+  if (!supabaseConfigured()) { addLocalScore(name, score); return; }
+  try { await sbFetch(SUPABASE_TABLE, { method:'POST', prefer:'return=minimal', body:{ name, score, puzzle_num:getPuzzleNum(), puzzle_date:getTodayKey(), submitted_at:new Date().toISOString() } }); }
+  catch(e) { addLocalScore(name, score); }
+}
+async function fetchLeaderboard() {
+  if (!supabaseConfigured()) return getLocalScores();
+  try { return await sbFetch(`${SUPABASE_TABLE}?puzzle_date=eq.${getTodayKey()}&order=score.desc,submitted_at.asc&limit=50`, { headers:{'Range':'0-49'} }) || []; }
+  catch(e) { return getLocalScores(); }
+}
+function addLocalScore(name, score) {
+  const key = 'riff_lb_'+getTodayKey();
+  try { const lb = getLocalScores(); lb.push({ name, score }); lb.sort((a,b)=>b.score-a.score); localStorage.setItem(key, JSON.stringify(lb.slice(0,50))); } catch(e) {}
+}
+function getLocalScores() {
+  try { const s = localStorage.getItem('riff_lb_'+getTodayKey()); return s ? JSON.parse(s) : []; } catch(e) { return []; }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+function init() {
+  document.getElementById('puzzle-num').textContent = `Puzzle #${getPuzzleNum()}`;
+  todaysSongs = getTodaySongs();
+  // Pre-fetch token in background
+  getSpotifyToken();
+  const saved = loadTodayState();
+  if (saved && saved.complete) showAlreadyPlayed(saved);
+}
+
+function showAlreadyPlayed(saved) {
+  document.getElementById('screen-name').classList.remove('active');
+  document.getElementById('nav-tabs').style.display = 'flex';
+  document.getElementById('screen-game').classList.add('active');
+  document.getElementById('screen-game').innerHTML = `
+    <div style="text-align:center;padding:40px 20px;">
+      <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:6px;color:var(--muted);margin-bottom:16px">YOU'VE ALREADY PLAYED TODAY</div>
+      <div style="font-family:'Bebas Neue';font-size:72px;color:var(--amber);letter-spacing:8px;line-height:1">${saved.score}</div>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:4px;margin-bottom:32px">OUT OF 500</div>
+      <div class="countdown-wrap"><div class="countdown-label">Next Puzzle In</div><div class="countdown-time" id="countdown">--:--:--</div></div>
+    </div>`;
+  startCountdown();
+}
+
+function startGame() {
+  const name = document.getElementById('player-name-input').value.trim();
+  if (!name) {
+    const inp = document.getElementById('player-name-input');
+    inp.style.borderColor = 'var(--rust)';
+    setTimeout(() => inp.style.borderColor = 'var(--amber)', 1200);
+    return;
+  }
+  playerName = name;
+  document.getElementById('screen-name').classList.remove('active');
+  document.getElementById('screen-game').classList.add('active');
+  document.getElementById('nav-tabs').style.display = 'flex';
+  startRound(0);
+}
+
+// ── ROUND ─────────────────────────────────────────────────────────
+function startRound(round) {
+  currentRound = round;
+  currentAttempt = 0;
+  hasPlayed = false;
+  isPlaying = false;
+  updateProgress();
+  document.getElementById('score-display').textContent = totalScore;
+  document.getElementById('round-display').textContent = `${round+1} / 5`;
+  document.getElementById('game-play-section').style.display = 'block';
+  document.getElementById('round-result-section').style.display = 'none';
+  document.getElementById('guess-section').style.display = 'block';
+  document.getElementById('guess-history').innerHTML = '';
+  document.getElementById('feedback-area').innerHTML = '';
+  document.getElementById('guess-input').value = '';
+  updateAttemptUI();
+  preloadCurrentSong();
+}
+
+function updateAttemptUI() {
+  document.getElementById('attempt-info').textContent = `ATTEMPT ${currentAttempt+1} OF 5`;
+  document.getElementById('clip-secs').textContent = currentAttempt+1;
+  document.getElementById('pts-avail').textContent = `${PTS[currentAttempt]} PTS AVAILABLE`;
+  document.getElementById('vinyl-disc').classList.remove('spinning');
+  document.getElementById('play-icon').style.display = 'block';
+  stopViz();
+}
+
+function updateProgress() {
+  for (let i = 0; i < 5; i++) {
+    const el = document.getElementById(`prog-${i}`);
+    el.className = 'progress-seg' + (i < currentRound ? ' done' : i === currentRound ? ' current' : '');
+  }
+  document.getElementById('prog-label').textContent = `ROUND ${currentRound+1} OF 5`;
+}
+
+// ── GUESSING ──────────────────────────────────────────────────────
+function submitGuess() {
+  if (!hasPlayed) { showFeedback('Play the clip first — click the record!', 'info'); return; }
+  const guess = document.getElementById('guess-input').value.trim();
+  if (!guess) return;
+  const song = todaysSongs[currentRound];
+  if (checkGuess(guess, song.title)) {
+    const pts = PTS[currentAttempt];
+    totalScore += pts;
+    roundScores.push({ song, pts, attempts: currentAttempt+1 });
+    document.getElementById('score-display').textContent = totalScore;
+    showFeedback(`✓ Correct! "${song.title}" by ${song.artist}`, 'correct');
+    document.getElementById('guess-section').style.display = 'none';
+    setTimeout(() => showRoundResult(song, pts), 700);
+  } else {
+    addGuessToHistory(guess, currentAttempt+1);
+    document.getElementById('guess-input').value = '';
+    if (currentAttempt >= 4) {
+      roundScores.push({ song, pts:0, attempts:5 });
+      showFeedback(`The song was "${song.title}" by ${song.artist}.`, 'skip');
+      document.getElementById('guess-section').style.display = 'none';
+      setTimeout(() => showRoundResult(song, 0), 700);
+    } else {
+      currentAttempt++;
+      updateAttemptUI();
+      hasPlayed = false;
+      setStatus('Click the record to play a longer clip');
+      showFeedback('Not quite — play a longer clip and try again.', 'wrong');
+    }
+  }
+}
+
+function skipAttempt() {
+  const guess = document.getElementById('guess-input').value.trim();
+  if (guess) addGuessToHistory(guess, currentAttempt+1);
+  document.getElementById('guess-input').value = '';
+  if (currentAttempt >= 4) {
+    const song = todaysSongs[currentRound];
+    roundScores.push({ song, pts:0, attempts:5 });
+    showFeedback(`The song was "${song.title}" by ${song.artist}.`, 'skip');
+    document.getElementById('guess-section').style.display = 'none';
+    setTimeout(() => showRoundResult(song, 0), 600);
+    return;
+  }
+  currentAttempt++;
+  updateAttemptUI();
+  hasPlayed = false;
+  setStatus('Click the record to play a longer clip');
+  document.getElementById('feedback-area').innerHTML = '';
+}
+
+function checkGuess(guess, title) {
+  const clean = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  const g = clean(guess), t = clean(title);
+  // Minimum length guard
+  if (g.length < 3) return false;
+  // Exact match
+  if (g === t) return true;
+  // Guess IS the full title (handles "the" prefix variants)
+  if (t === g) return true;
+  // Word-level exact matching — no substring tricks
+  const STOP = new Set(['the','and','for','with','from','you','your','our','this','that','what','when','they','them','not','all','out','but','just','into','have','been','are','was']);
+  const gWords = g.split(' ').filter(w => w.length >= 3 && !STOP.has(w));
+  const tWords = t.split(' ').filter(w => w.length >= 3 && !STOP.has(w));
+  if (!gWords.length || !tWords.length) return false;
+  const tWordSet = new Set(tWords);
+  // All guess words must exactly match title words
+  const allMatch = gWords.every(w => tWordSet.has(w));
+  if (!allMatch) return false;
+  // Must account for at least half the title's significant words
+  return gWords.length >= Math.ceil(tWords.length / 2);
+}
+
+function addGuessToHistory(guess, attempt) {
+  const div = document.createElement('div');
+  div.className = 'guess-item';
+  div.innerHTML = `<span class="gi-label">#${attempt}</span><span class="gi-text">${guess}</span><span class="gi-x">✕</span>`;
+  document.getElementById('guess-history').appendChild(div);
+}
+
+function showFeedback(msg, type) {
+  document.getElementById('feedback-area').innerHTML = `<div class="feedback-box ${type}">${msg}</div>`;
+}
+
+// ── ROUND RESULT ──────────────────────────────────────────────────
+function showRoundResult(song, pts) {
+  document.getElementById('game-play-section').style.display = 'none';
+  document.getElementById('round-result-section').style.display = 'block';
+  document.getElementById('rr-round').textContent = currentRound+1;
+  document.getElementById('rr-song').textContent = song.title.toUpperCase();
+  document.getElementById('rr-artist').textContent = `${song.artist} · ${song.year}`;
+  document.getElementById('rr-pts').textContent = pts;
+  document.getElementById('btn-next-round').textContent = currentRound >= 4 ? 'SEE FINAL SCORE →' : 'NEXT TRACK →';
+  fetchSongInfo(song);
+}
+
+async function fetchSongInfo(song) {
+  const el = document.getElementById('rr-info');
+  el.innerHTML = '<div class="info-loading">Loading from the archives...</div>';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role:'user', content:`Give me 3-4 sentences of fascinating, specific trivia about "${song.title}" by ${song.artist} (${song.year}). Include recording stories, chart history, cultural impact, or behind-the-scenes facts. Engaging and concise for a rock fan. Plain prose only.` }]
+      })
+    });
+    const data = await res.json();
+    el.innerHTML = `<p>${data.content?.[0]?.text || 'Song info unavailable.'}</p>`;
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--muted)">Could not load song info.</p>`;
+  }
+}
+
+function nextRound() {
+  if (currentRound >= 4) finishGame();
+  else startRound(currentRound+1);
+}
+
+// ── FINISH ────────────────────────────────────────────────────────
+async function finishGame() {
+  saveStats(totalScore);
+  saveTodayState(totalScore);
+  await submitScore(playerName, totalScore);
+  document.getElementById('screen-game').classList.remove('active');
+  document.getElementById('screen-final').classList.add('active');
+  document.getElementById('final-total').textContent = totalScore;
+  document.getElementById('round-summary').innerHTML = roundScores.map((rs,i) => `
+    <div class="rs-item">
+      <div class="rs-label">Round ${i+1}</div>
+      <div class="rs-pts">${rs.pts}</div>
+      <div class="rs-song">${rs.song.title.substring(0,12)}</div>
+    </div>`).join('');
+  startCountdown();
+  showTab('game');
+}
+
+function shareResult() {
+  const blocks = roundScores.map(rs => rs.pts===100?'🟩':rs.pts>=60?'🟨':rs.pts>=20?'🟧':'⬛').join('');
+  const text = `🎸 RIFF #${getPuzzleNum()}\n${blocks}\nScore: ${totalScore}/500\nPlay at riffdailygame.netlify.app`;
+  try {
+    navigator.clipboard.writeText(text);
+    document.getElementById('share-toast').textContent = '✓ Copied to clipboard!';
+    setTimeout(() => document.getElementById('share-toast').textContent = '', 3000);
+  } catch(e) { document.getElementById('share-toast').textContent = text; }
+}
+
+function startCountdown() {
+  const tick = () => {
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    const now = new Date(), tmrw = new Date(now);
+    tmrw.setDate(tmrw.getDate()+1); tmrw.setHours(0,0,0,0);
+    const d = tmrw-now, h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000), s = Math.floor((d%60000)/1000);
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    if ((tab==='game' && t.textContent.includes('Today')) || t.textContent.toLowerCase().includes(tab)) t.classList.add('active');
+  });
+  if (tab==='leaderboard') renderLeaderboard();
+  if (tab==='stats') renderStats();
+}
+
+async function renderLeaderboard() {
+  const el = document.getElementById('lb-content');
+  const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('lb-date').textContent = `${today} · Puzzle #${getPuzzleNum()}`;
+  el.innerHTML = '<div class="lb-loading">Fetching scores...</div>';
+  try {
+    const lb = await fetchLeaderboard();
+    if (!lb.length) { el.innerHTML = '<div class="lb-loading">No scores yet. Be the first!</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    const rows = lb.slice(0,30).map((entry,i) => {
+      const me = entry.name === playerName;
+      return `<tr class="${me?'me':''}"><td class="rank">${i+1}</td><td>${medals[i]||''}${entry.name}${me?' ◀':''}</td><td class="pts-cell">${entry.score}</td></tr>`;
+    }).join('');
+    el.innerHTML = `<table class="lb-table"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Score</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="lb-loading">Could not load leaderboard.</div>'; }
+}
+
+function renderStats() {
+  const stats = loadStats();
+  const avg = stats.games > 0 ? Math.round(stats.totalScore/stats.games) : 0;
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="sc-value">${stats.streak}</div><div class="sc-label">Day Streak</div></div>
+    <div class="stat-card"><div class="sc-value">${stats.games}</div><div class="sc-label">Games Played</div></div>
+    <div class="stat-card"><div class="sc-value">${avg}</div><div class="sc-label">Avg Score</div></div>
+    <div class="stat-card"><div class="sc-value">${stats.best}</div><div class="sc-label">Best Score</div></div>`;
+  const history = stats.history.slice(0,10);
+  document.getElementById('history-list').innerHTML = history.length ? `
+    <div class="section-head">Recent Games</div>
+    ${history.map(h=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(200,132,26,0.1)"><div style="font-size:11px;color:var(--muted)">${h.date}</div><div style="font-family:'Bebas Neue';font-size:20px;color:var(--amber);letter-spacing:3px">${h.score}<span style="font-size:12px;color:var(--muted)">/500</span></div></div>`).join('')}` : '';
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('guess-input')?.addEventListener('keydown', e => { if(e.key==='Enter') submitGuess(); });
+  document.getElementById('player-name-input')?.addEventListener('keydown', e => { if(e.key==='Enter') startGame(); });
+  init();
+});
+</script>
+</body>
+</html>
