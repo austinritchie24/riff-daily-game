@@ -372,28 +372,44 @@ async function getSpotifyToken() {
 async function fetchPreviewUrl(song) {
   const token = await getSpotifyToken();
   if (!token) return null;
-  try {
-    const q = encodeURIComponent(`track:${song.title} artist:${song.artist}`);
-    const res = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=5`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-    const tracks = data.tracks?.items || [];
-    // Find best match — prefer exact title match with a preview_url
-    for (const track of tracks) {
-      if (track.preview_url && track.name.toLowerCase() === song.title.toLowerCase()) {
-        return track.preview_url;
+
+  // Try multiple search queries to maximize chance of finding a preview
+  const queries = [
+    `track:${song.title} artist:${song.artist}`,
+    `${song.title} ${song.artist}`,
+    `${song.title}`,
+  ];
+
+  for (const query of queries) {
+    try {
+      const q = encodeURIComponent(query);
+      const res = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=10`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      const tracks = data.tracks?.items || [];
+
+      // First: exact title + has preview
+      for (const track of tracks) {
+        if (track.preview_url && track.name.toLowerCase() === song.title.toLowerCase()) {
+          return track.preview_url;
+        }
       }
+      // Second: title contains match + has preview
+      for (const track of tracks) {
+        if (track.preview_url && track.name.toLowerCase().includes(song.title.toLowerCase())) {
+          return track.preview_url;
+        }
+      }
+      // Third: any preview at all
+      for (const track of tracks) {
+        if (track.preview_url) return track.preview_url;
+      }
+    } catch(e) {
+      console.error('Spotify search error', e);
     }
-    // Fallback: first result with any preview
-    for (const track of tracks) {
-      if (track.preview_url) return track.preview_url;
-    }
-    return null;
-  } catch(e) {
-    console.error('Spotify search error', e);
-    return null;
   }
+  return null;
 }
 
 async function preloadCurrentSong() {
