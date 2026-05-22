@@ -282,8 +282,7 @@
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────
-const SPOTIFY_CLIENT_ID     = '8b7dad9d0d334b6ca4f081fab3d98d9e';
-const SPOTIFY_CLIENT_SECRET = '276548f4d41d4ca8acae052548e3fee8';
+// Spotify credentials are handled server-side via /.netlify/functions/spotify-token
 const SUPABASE_URL          = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY     = 'YOUR_SUPABASE_ANON_KEY';
 const SUPABASE_TABLE        = 'leaderboard';
@@ -357,21 +356,15 @@ let previewUrls = {};  // cache: songIndex -> previewUrl
 async function getSpotifyToken() {
   if (spotifyToken) return spotifyToken;
   try {
-    const res = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
-      },
-      body: 'grant_type=client_credentials'
-    });
+    const res = await fetch('/.netlify/functions/spotify-token');
     const data = await res.json();
+    if (!data.access_token) throw new Error('No token returned');
     spotifyToken = data.access_token;
-    // Refresh token before expiry
     setTimeout(() => { spotifyToken = null; }, (data.expires_in - 60) * 1000);
     return spotifyToken;
   } catch(e) {
     console.error('Spotify token error', e);
+    setStatus('Could not connect to audio — refresh and try again');
     return null;
   }
 }
